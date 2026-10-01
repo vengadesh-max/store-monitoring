@@ -36,7 +36,11 @@ def test_get_report_returns_running_state_for_a_known_report() -> None:
 
 def test_complete_report_returns_csv_attachment() -> None:
     """A completed report must directly return its CSV attachment."""
-    csv_path = Path(__file__).resolve().parent.parent / "sample-output" / "report_from_provided_data.csv"
+    csv_path = (
+        Path(__file__).resolve().parent.parent
+        / "sample-output"
+        / "store_monitoring_dbfea6fa-2144-4409-88b0-8e11aaf1580a.csv"
+    )
 
     class FakeSession:
         """Minimal session substitute that returns one completed report."""
