@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException
@@ -14,14 +16,16 @@ from app.reporting import create_report, run_report
 from app.schemas import FailedReportResponse, RunningReportResponse, TriggerReportResponse
 
 
+@asynccontextmanager
+async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
+    """Initialize database tables before the API begins accepting requests."""
+    Base.metadata.create_all(SessionFactory.kw["bind"])
+    yield
+
+
 def create_app() -> FastAPI:
     """Create the HTTP application and wire routes to service-layer operations."""
-    app = FastAPI(title="Store Monitoring API", version="1.0.0")
-
-    @app.on_event("startup")
-    def create_tables() -> None:
-        """Create local database tables when the application process starts."""
-        Base.metadata.create_all(SessionFactory.kw["bind"])
+    app = FastAPI(title="Store Monitoring API", version="1.0.0", lifespan=lifespan)
 
     @app.post("/trigger_report", response_model=TriggerReportResponse, status_code=202)
     def trigger_report(background_tasks: BackgroundTasks, session: Session = Depends(get_db)) -> TriggerReportResponse:
@@ -33,8 +37,20 @@ def create_app() -> FastAPI:
         background_tasks.add_task(run_report, SessionFactory, report.id)
         return TriggerReportResponse(report_id=report.id)
 
-    @app.get("/get_report", response_model=RunningReportResponse | FailedReportResponse)
-    def get_report(report_id: str, session: Session = Depends(get_db)):
+    @app.get(
+        "/get_report",
+        response_model=RunningReportResponse | FailedReportResponse,
+        responses={
+            200: {
+                "description": "The report is running as JSON, or complete as a CSV attachment.",
+                "content": {"text/csv": {"schema": {"type": "string", "format": "binary"}}},
+            },
+        },
+    )
+    def get_report(
+        report_id: str,
+        session: Session = Depends(get_db),
+    ) -> RunningReportResponse | FailedReportResponse | FileResponse:
         """Return job state until complete, then stream the generated CSV artifact."""
         report = session.get(Report, report_id)
         if report is None:

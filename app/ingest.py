@@ -5,7 +5,7 @@ from __future__ import annotations
 import csv
 from collections.abc import Iterator
 from datetime import UTC, datetime, time
-from pathlib import Path
+from typing import Protocol, TextIO
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from sqlalchemy import delete
@@ -15,6 +15,13 @@ from sqlalchemy.orm import Session
 from app.models import BusinessHour, StoreStatus, StoreTimezone
 
 BATCH_SIZE = 10_000
+
+
+class CsvSource(Protocol):
+    """A readable source that can provide UTF-8 CSV content."""
+
+    def open(self, **kwargs: object) -> TextIO:
+        """Open the source as a text stream compatible with ``csv.DictReader``."""
 
 
 def parse_utc_timestamp(raw: str) -> datetime:
@@ -43,7 +50,7 @@ def chunked(rows: Iterator[dict[str, object]], size: int = BATCH_SIZE) -> Iterat
         yield batch
 
 
-def ingest_statuses(session: Session, csv_path: Path) -> int:
+def ingest_statuses(session: Session, csv_path: CsvSource) -> int:
     """Upsert status observations from a CSV and return the number of source rows read."""
 
     def rows() -> Iterator[dict[str, object]]:
@@ -71,7 +78,7 @@ def ingest_statuses(session: Session, csv_path: Path) -> int:
     return imported
 
 
-def ingest_business_hours(session: Session, csv_path: Path) -> int:
+def ingest_business_hours(session: Session, csv_path: CsvSource) -> int:
     """Replace the business-hours snapshot and return the number of imported rows."""
     rows: list[BusinessHour] = []
     with csv_path.open(newline="", encoding="utf-8") as source:
@@ -90,8 +97,8 @@ def ingest_business_hours(session: Session, csv_path: Path) -> int:
     return len(rows)
 
 
-def ingest_timezones(session: Session, csv_path: Path) -> int:
-    """Upsert valid IANA timezone assignments and return the number of source rows read."""
+def ingest_timezones(session: Session, csv_path: CsvSource) -> int:
+    """Replace the timezone snapshot and return the number of source rows read."""
     rows: list[dict[str, object]] = []
     with csv_path.open(newline="", encoding="utf-8") as source:
         for line_number, row in enumerate(csv.DictReader(source), start=2):
@@ -102,6 +109,8 @@ def ingest_timezones(session: Session, csv_path: Path) -> int:
                 raise ValueError(f"invalid timezone on line {line_number}: {timezone_name!r}") from error
             rows.append({"store_id": (row.get("store_id") or "").strip(), "timezone_str": timezone_name})
 
+    # Timezones are a snapshot: removing a source row must restore the default timezone.
+    session.execute(delete(StoreTimezone))
     for batch in chunked(iter(rows)):
         statement = sqlite_insert(StoreTimezone).values(batch)
         statement = statement.on_conflict_do_update(
@@ -112,7 +121,12 @@ def ingest_timezones(session: Session, csv_path: Path) -> int:
     return len(rows)
 
 
-def ingest_all(session: Session, status_csv: Path, hours_csv: Path, timezone_csv: Path) -> dict[str, int]:
+def ingest_all(
+    session: Session,
+    status_csv: CsvSource,
+    hours_csv: CsvSource,
+    timezone_csv: CsvSource,
+) -> dict[str, int]:
     """Import all source snapshots atomically and return source row counts by dataset."""
     counts = {
         "business_hours": ingest_business_hours(session, hours_csv),

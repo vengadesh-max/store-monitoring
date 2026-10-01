@@ -8,9 +8,9 @@ The project structure and responsibility boundaries are documented in [Architect
 
 The data has hourly-ish observations rather than exact transition times. For a store, a poll's state is carried forward until the next poll. If a report window starts before the first available poll in that window, that first state is backfilled to the beginning of the window. This covers the complete business interval without inventing additional state changes. A store with no usable poll history is treated conservatively as inactive.
 
-Business-hour intervals are created in each store's IANA timezone, converted to UTC, unioned to avoid double counting, and then intersected with the report windows. Multiple daily intervals and schedules crossing midnight are supported. Missing business hours mean 24/7; missing timezones mean `America/Chicago`. DST fall-back uses the earlier opening and later closing instant; spring-forward invalid wall times move to the first valid minute.
+Business-hour intervals are created in each store's IANA timezone, converted to UTC, unioned to avoid double counting, and then intersected with the report windows. Multiple daily intervals and schedules crossing midnight are supported. Missing business hours mean 24/7; missing timezones use `DEFAULT_TIMEZONE`, which defaults to `America/Chicago`. DST fall-back uses the earlier opening and later closing instant; spring-forward invalid wall times move to the first valid minute.
 
-The source statement has a one-word typo (`update_last_week`). The generated CSV uses the intended, symmetric field name: `uptime_last_week(in hours)`.
+The assignment calls this column `update_last_week(in hours)`. It contains the store's uptime for the last week.
 
 ## Run it
 
@@ -51,7 +51,7 @@ Invoke-WebRequest "http://127.0.0.1:8000/get_report?report_id=$($report.report_i
 The output columns are:
 
 ```text
-store_id,uptime_last_hour(in minutes),uptime_last_day(in hours),uptime_last_week(in hours),downtime_last_hour(in minutes),downtime_last_day(in hours),downtime_last_week(in hours)
+store_id,uptime_last_hour(in minutes),uptime_last_day(in hours),update_last_week(in hours),downtime_last_hour(in minutes),downtime_last_day(in hours),downtime_last_week(in hours)
 ```
 
 All values are fixed to two decimal places. A real output generated from the supplied CSVs is committed under `sample-output/` after running the import.

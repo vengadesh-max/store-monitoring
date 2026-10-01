@@ -1,4 +1,4 @@
-store_id,uptime_last_hour(in minutes),uptime_last_day(in hours),uptime_last_week(in hours),downtime_last_hour(in minutes),downtime_last_day(in hours),downtime_last_week(in hours)
+store_id,uptime_last_hour(in minutes),uptime_last_day(in hours),update_last_week(in hours),downtime_last_hour(in minutes),downtime_last_day(in hours),downtime_last_week(in hours)
 00017c6a-7a77-4a95-bb2d-40647868aff6,60.00,8.53,58.77,0.00,1.97,16.73
 000bba84-20af-4a8b-b68a-368922cc6ad1,0.00,0.00,0.00,60.00,24.00,168.00
 003222af-0b64-4f8c-b5c3-d2dc24636f02,60.00,11.25,78.75,0.00,0.00,0.00

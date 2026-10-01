@@ -27,7 +27,7 @@ This service imports operational store data and creates a downloadable report on
 
 ## Calculation Policy
 
-The reporting service represents time as naive UTC datetimes internally. It expands each store's local business schedule into UTC intervals with explicit daylight-saving handling, merges overlaps, and intersects those intervals with status spans.
+The reporting service represents time as naive UTC datetimes internally. It expands each store's local business schedule into UTC intervals with explicit daylight-saving handling, merges overlaps, and intersects those intervals with status spans. The fallback timezone is configuration-backed through `DEFAULT_TIMEZONE`, whose required default is `America/Chicago`.
 
 A status applies from its poll timestamp until the next poll. When a requested window starts before its first in-window poll, that first state backfills the leading interval. A store without any usable observation is counted as inactive. This makes uptime plus downtime equal all eligible business time.
 

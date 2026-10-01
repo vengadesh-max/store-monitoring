@@ -13,6 +13,7 @@ class Settings:
 
     database_url: str
     reports_directory: Path
+    default_timezone: str
 
 
 def get_settings() -> Settings:
@@ -21,4 +22,5 @@ def get_settings() -> Settings:
     return Settings(
         database_url=os.getenv("DATABASE_URL", f"sqlite:///{root / 'store_monitoring.db'}"),
         reports_directory=Path(os.getenv("REPORTS_DIRECTORY", root / "reports")),
+        default_timezone=os.getenv("DEFAULT_TIMEZONE", "America/Chicago"),
     )

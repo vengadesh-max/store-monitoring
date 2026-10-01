@@ -16,7 +16,6 @@ from sqlalchemy.orm import Session, aliased, sessionmaker
 from app.config import get_settings
 from app.models import BusinessHour, Report, StoreStatus, StoreTimezone
 
-DEFAULT_TIMEZONE = "America/Chicago"
 WINDOWS = (
     ("last_hour", timedelta(hours=1), "minutes"),
     ("last_day", timedelta(days=1), "hours"),
@@ -26,7 +25,7 @@ CSV_HEADER = [
     "store_id",
     "uptime_last_hour(in minutes)",
     "uptime_last_day(in hours)",
-    "uptime_last_week(in hours)",
+    "update_last_week(in hours)",
     "downtime_last_hour(in minutes)",
     "downtime_last_day(in hours)",
     "downtime_last_week(in hours)",
@@ -202,6 +201,8 @@ def generate_csv(session: Session, report: Report, output_path: Path) -> None:
     week_start = report.reference_time_utc - timedelta(days=7)
     readings_by_store = _load_readings(session, week_start, report.reference_time_utc)
     timezone_by_store = dict(session.execute(select(StoreTimezone.store_id, StoreTimezone.timezone_str)).all())
+    default_timezone_name = get_settings().default_timezone
+    ZoneInfo(default_timezone_name)
     hours_by_store: dict[str, list[BusinessHour]] = defaultdict(list)
     for hours in session.execute(select(BusinessHour)).scalars():
         hours_by_store[hours.store_id].append(hours)
@@ -211,7 +212,7 @@ def generate_csv(session: Session, report: Report, output_path: Path) -> None:
         writer = csv.writer(output)
         writer.writerow(CSV_HEADER)
         for store_id in sorted(readings_by_store):
-            timezone = ZoneInfo(timezone_by_store.get(store_id, DEFAULT_TIMEZONE))
+            timezone = ZoneInfo(timezone_by_store.get(store_id, default_timezone_name))
             store_hours = hours_by_store[store_id]
             row: list[str] = [store_id]
             for _name, duration, unit in WINDOWS:
