@@ -70,7 +70,3 @@ The unit tests cover status interpolation, default 24/7 availability, overnight 
 - Use PostgreSQL with `COPY`/bulk upserts, source-version metadata, and incremental imports for faster large-scale refreshes.
 - Add authentication, rate limits, structured metrics, tracing, and a report retention policy.
 - Add property-based tests around DST transitions and integration tests against PostgreSQL.
-
-## Demo checklist
-
-For the requested short recording: show import completion, start Uvicorn, call `POST /trigger_report`, poll `GET /get_report`, and open the downloaded CSV. Briefly point out `app/reporting.py` for business-hours/interpolation logic and `app/ingest.py` for database ingestion.
