@@ -5,8 +5,9 @@ from __future__ import annotations
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
+from uuid import UUID
 
-from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException
+from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
@@ -28,8 +29,14 @@ def create_app() -> FastAPI:
     app = FastAPI(title="Store Monitoring API", version="1.0.0", lifespan=lifespan)
 
     @app.post("/trigger_report", response_model=TriggerReportResponse, status_code=202)
-    def trigger_report(background_tasks: BackgroundTasks, session: Session = Depends(get_db)) -> TriggerReportResponse:
+    async def trigger_report(
+        request: Request,
+        background_tasks: BackgroundTasks,
+        session: Session = Depends(get_db),
+    ) -> TriggerReportResponse:
         """Create a durable report job and schedule its background calculation."""
+        if await request.body():
+            raise HTTPException(status_code=422, detail="trigger_report does not accept a request body")
         try:
             report = create_report(session)
         except ValueError as error:
@@ -48,11 +55,11 @@ def create_app() -> FastAPI:
         },
     )
     def get_report(
-        report_id: str,
+        report_id: UUID,
         session: Session = Depends(get_db),
     ) -> RunningReportResponse | FailedReportResponse | FileResponse:
         """Return job state until complete, then stream the generated CSV artifact."""
-        report = session.get(Report, report_id)
+        report = session.get(Report, str(report_id))
         if report is None:
             raise HTTPException(status_code=404, detail="Unknown report_id")
         if report.status == "Running":
