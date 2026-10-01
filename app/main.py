@@ -9,6 +9,7 @@ from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from app.db import Base, SessionFactory, get_db
+from app.models import Report
 from app.reporting import create_report, run_report
 from app.schemas import FailedReportResponse, RunningReportResponse, TriggerReportResponse
 
