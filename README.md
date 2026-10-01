@@ -1,6 +1,6 @@
 # Store Monitoring
 
-A FastAPI service that imports Loop's three CSV sources into SQLite and asynchronously generates per-store uptime/downtime reports. It does not precompute results during ingestion: every trigger builds a fresh report against the latest status observation in the database.
+A FastAPI service that imports three CSV sources into SQLite and asynchronously generates per-store uptime/downtime reports. It does not precompute results during ingestion: every trigger builds a fresh report against the latest status observation in the database.
 
 The project structure and responsibility boundaries are documented in [Architecture](docs/architecture.md).
 
