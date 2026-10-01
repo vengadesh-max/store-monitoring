@@ -1,0 +1,10 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+store-monitoring-data.zip
+source-data/
+store_monitoring.db
+store_monitoring.db-*
+*.egg-info/
+reports/
